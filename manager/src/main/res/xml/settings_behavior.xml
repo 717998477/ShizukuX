@@ -13,6 +13,12 @@
             android:icon="@drawable/ic_power_settings_new_24" />
 
         <SwitchPreferenceCompat
+            android:key="legacy_auto_connect"
+            android:title="@string/settings_legacy_auto_connect"
+            android:summary="@string/settings_legacy_auto_connect_summary"
+            android:icon="@drawable/ic_adb_24" />
+
+        <SwitchPreferenceCompat
             android:key="watchdog"
             android:summary="@string/settings_watchdog_summary"
             android:title="@string/settings_watchdog"

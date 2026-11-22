@@ -29,6 +29,7 @@ class BehaviorSettingsFragment : BaseSettingsFragment(), SharedPreferences.OnSha
     override fun getTitle(): CharSequence? = getString(R.string.settings_startup_behavior_title)
 
     private lateinit var startOnBootPreference: TwoStatePreference
+    private lateinit var legacyAutoConnectPreference: TwoStatePreference
     private lateinit var watchdogPreference: TwoStatePreference
     private lateinit var tcpModePreference: TwoStatePreference
     private lateinit var tcpPortPreference: EditTextPreference
@@ -48,6 +49,21 @@ class BehaviorSettingsFragment : BaseSettingsFragment(), SharedPreferences.OnSha
     override fun onCreateSettingsPreferences(savedInstanceState: Bundle?, rootKey: String?) {
         setPreferencesFromResource(R.xml.settings_behavior, rootKey)
         val context = requireContext()
+
+        legacyAutoConnectPreference = requireNotNull(findPreference(KEY_LEGACY_AUTO_CONNECT))
+        // Only the car-head-unit build actually has the plaintext-ADB auto-start this controls.
+        if (!af.shizuku.manager.BuildConfig.LEGACY_ADB_CUSTOM) {
+            legacyAutoConnectPreference.isVisible = false
+        } else {
+            legacyAutoConnectPreference.isChecked = ShizukuSettings.getLegacyAutoConnect()
+            legacyAutoConnectPreference.setOnPreferenceChangeListener { _, newValue ->
+                if (newValue !is Boolean) return@setOnPreferenceChangeListener false
+                ShizukuSettings.setLegacyAutoConnect(newValue)
+                legacyAutoConnectPreference.isChecked = ShizukuSettings.getLegacyAutoConnect()
+                Toast.makeText(context, R.string.settings_legacy_auto_connect_toast, Toast.LENGTH_SHORT).show()
+                true
+            }
+        }
 
         startOnBootPreference = requireNotNull(findPreference(KEY_START_ON_BOOT))
         watchdogPreference = requireNotNull(findPreference(KEY_WATCHDOG))

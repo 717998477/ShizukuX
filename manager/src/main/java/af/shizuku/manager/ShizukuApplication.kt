@@ -735,7 +735,9 @@ class ShizukuApplication : Application(), Configuration.Provider {
         // enqueues AdbStartWorker (all socket work happens off the main thread); the existing 10s
         // dedup window and the "user stopped it" tombstone still apply, so this never fights a
         // deliberate stop or a concurrent boot-time start.
-        if (BuildConfig.LEGACY_ADB_CUSTOM && Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+        if (BuildConfig.LEGACY_ADB_CUSTOM && Build.VERSION.SDK_INT < Build.VERSION_CODES.R &&
+            ShizukuSettings.getLegacyAutoConnect()
+        ) {
             Thread({
                 runCatching {
                     af.shizuku.manager.receiver.ShizukuReceiverStarter.start(this)

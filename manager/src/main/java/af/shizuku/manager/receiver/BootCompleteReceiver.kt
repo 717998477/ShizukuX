@@ -87,6 +87,11 @@ class BootCompleteReceiver : BroadcastReceiver() {
             val pending = goAsync()
             CoroutineScope(Dispatchers.IO).launch {
                 try {
+                    // Car-head-unit build: 设置 → 行为 里的「开机 / 打开 App 自动连接」开关
+                    // gates both automatic callers (boot receiver and app-launch start).
+                    if (!ShizukuSettings.getLegacyAutoConnect()) {
+                        return@launch
+                    }
                     ShizukuReceiverStarter.start(context)
                 } catch (e: Exception) {
                     // LOCKED_BOOT_COMPLETED fires during direct boot, before credential-encrypted storage

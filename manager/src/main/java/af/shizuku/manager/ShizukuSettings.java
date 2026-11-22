@@ -28,6 +28,8 @@ public class ShizukuSettings {
     public static final String NAME = "settings";
     public static class Keys {
         public static final String KEY_START_ON_BOOT = "start_on_boot";
+        /** Legacy plaintext-ADB build: auto-connect on boot / app launch (default ON). */
+        public static final String KEY_LEGACY_AUTO_CONNECT = "legacy_auto_connect";
         public static final String KEY_WATCHDOG = "watchdog";
         public static final String KEY_WATCHDOG_CRASH_ALERTS = "watchdog_crash_alerts";
         public static final String KEY_AUTO_RESTORE_DEVELOPER_OPTIONS = "auto_restore_developer_options";
@@ -587,6 +589,21 @@ public class ShizukuSettings {
             PackageManager.DONT_KILL_APP
         );
         getPreferences().edit().putBoolean(Keys.KEY_START_ON_BOOT, enable).apply();
+    }
+
+    /**
+     * Legacy plaintext-ADB build only: bring the server up automatically on boot and whenever the
+     * app process starts. Default ON; the switch in 设置 → 行为 turns both automatic callers off
+     * while leaving manual 启动 untouched.
+     */
+    public static boolean getLegacyAutoConnect() {
+        SharedPreferences p = getPreferences();
+        return p == null || p.getBoolean(Keys.KEY_LEGACY_AUTO_CONNECT, true);
+    }
+
+    public static void setLegacyAutoConnect(boolean enable) {
+        SharedPreferences p = getPreferences();
+        if (p != null) p.edit().putBoolean(Keys.KEY_LEGACY_AUTO_CONNECT, enable).apply();
     }
 
     public static boolean getWatchdog() {

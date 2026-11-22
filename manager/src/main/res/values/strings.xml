@@ -481,7 +481,10 @@ Alternatively, while the pop-up is open, pull down the notification shade and ty
     <string name="settings_title">Settings</string>
     <string name="settings_behavior">Behavior</string>
     <string name="settings_start_on_boot">Start on boot</string>
-    <string name="settings_start_on_boot_summary">Requires Android 11+ or root</string>
+    <string name="settings_start_on_boot_summary">Android 11+, root, or a plaintext ADB port (car head units)</string>
+    <string name="settings_legacy_auto_connect">Auto-connect on boot / app open</string>
+    <string name="settings_legacy_auto_connect_summary">Plaintext ADB only (car head units, Android 10 and below). Turns the server on by itself at boot and whenever the app is opened.</string>
+    <string name="settings_legacy_auto_connect_toast">Saved. Manual 启动 still works when this is off.</string>
     <string name="settings_start_on_boot_bug">Due to a bug in Android 11-12, wireless debugging does not remember any authorized networks.\n\nYou will need to re-authorize the network on each reboot by tapping \"Allow\" when the authorization dialog pops up.</string>
     <string name="settings_use_system_color">Use system theme color</string>
     <string name="settings_watchdog">Watchdog</string>

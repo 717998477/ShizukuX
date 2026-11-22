@@ -241,8 +241,11 @@
     <!-- Settings -->
     <string name="settings_title">设置</string>
     <string name="settings_behavior">行为</string>
-    <string name="settings_start_on_boot">开机启动（Root）</string>
-    <string name="settings_start_on_boot_summary">已 Root 的设备可以在开机时启动 Shizuku</string>
+    <string name="settings_start_on_boot">开机启动（Root / 明文 ADB）</string>
+    <string name="settings_start_on_boot_summary">已 Root 的设备，或开机即有明文 ADB 端口（车机、Android 10 及以下）的设备，可在开机时启动 Shizuku</string>
+    <string name="settings_legacy_auto_connect"><![CDATA[开机 / 打开 App 自动连接]]></string>
+    <string name="settings_legacy_auto_connect_summary"><![CDATA[仅明文 ADB（车机、Android 10 及以下）。开启后开机和每次打开本 App 都会自动把服务拉起来。]]></string>
+    <string name="settings_legacy_auto_connect_toast"><![CDATA[已保存。关闭后仍可手动点「启动」]]></string>
     <string name="settings_start_on_boot_bug">由于 Android 11-12
         中的一个漏洞，无线调试不会记住任何授权网络。\n\n每次重启时，当授权对话框弹出时，点击“允许”重新授权网络。</string>
     <string name="settings_use_system_color">使用系统主题颜色</string>
