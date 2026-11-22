@@ -60,7 +60,7 @@ jobs:
             -alias shizukux -keyalg RSA -keysize 2048 -validity 36500 \
             -dname "CN=ShizukuX CI, O=Self Build, C=CN"
           printf '%s\n' \
-            'KEYSTORE_FILE=ci-release.keystore' \
+            "KEYSTORE_FILE=$GITHUB_WORKSPACE/ci-release.keystore" \
             'KEYSTORE_PASSWORD=shizukuxci' \
             'KEYSTORE_ALIAS=shizukux' \
             'KEYSTORE_ALIAS_PASSWORD=shizukuxci' > signing.properties
