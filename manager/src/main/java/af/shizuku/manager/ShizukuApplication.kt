@@ -730,6 +730,19 @@ class ShizukuApplication : Application(), Configuration.Provider {
             if (e is Error) throw e
         }
 
+        // 6. Car-head-unit build: bring the server up whenever the app process starts, so simply
+        // opening the app connects instead of waiting for a tap on 启动. The plaintext-ADB branch
+        // enqueues AdbStartWorker (all socket work happens off the main thread); the existing 10s
+        // dedup window and the "user stopped it" tombstone still apply, so this never fights a
+        // deliberate stop or a concurrent boot-time start.
+        if (BuildConfig.LEGACY_ADB_CUSTOM && Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            Thread({
+                runCatching {
+                    af.shizuku.manager.receiver.ShizukuReceiverStarter.start(this)
+                }.onFailure { Timber.w(it, "Launch-time ADB auto start failed") }
+            }, "legacy-adb-autostart").apply { isDaemon = true }.start()
+        }
+
         // 6. Update state machine
         try {
             ShizukuStateMachine.update()

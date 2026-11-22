@@ -117,10 +117,15 @@ object ShizukuReceiverStarter {
                 || ShizukuStateMachine.isRunning()
                 || ShizukuStateMachine.get() == ShizukuStateMachine.State.STARTING)) return
 
-        if (ShizukuSettings.getLastLaunchMode() == LaunchMethod.ROOT) {
+        // A head unit launched over adb root reports server uid 0, so the stored launch mode can
+        // read ROOT even though the only wire that ever worked is the plaintext adbd. When a
+        // legacy port exists on a pre-11 device, the ADB branch is therefore preferred over
+        // rootStart(): rootStart would spawn an su that does not exist and abort the boot start.
+        val legacyAdbPreferred = isLegacyAdbStartPossible()
+        if (ShizukuSettings.getLastLaunchMode() == LaunchMethod.ROOT && !legacyAdbPreferred) {
             rootStart(context)
         } else if (ShizukuSettings.getLastLaunchMode() == LaunchMethod.ADB ||
-            isLegacyAdbStartPossible()
+            legacyAdbPreferred
         ) {
             // A running server is shell and holds WRITE_SECURE_SETTINGS itself, so an ADB
             // start no longer needs the app to hold the permission: AdbStartWorker arms
