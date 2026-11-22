@@ -79,7 +79,10 @@ jobs:
       - name: Build ShizukuX (standard + Drop-In)
         run: |
           chmod +x gradlew
+          VERSION_NAME="ShizukuX 13.7.0.r$(git rev-list --count HEAD)"
+          echo "Building as: $VERSION_NAME-car"
           ./gradlew --no-daemon --stacktrace \
+            -PshizukuVersionName="$VERSION_NAME" \
             :manager:assembleShizukuxRelease \
             :manager:assembleDropinRelease
 
