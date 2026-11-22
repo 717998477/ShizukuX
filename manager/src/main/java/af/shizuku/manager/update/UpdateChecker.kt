@@ -81,6 +81,13 @@ object UpdateChecker {
      * (Gitee → CNB → JihuLab → GitHub → CF → COS): detection and delivery stay decoupled.
      */
     suspend fun checkForUpdate(channel: String = "stable"): CheckResult = withContext(Dispatchers.IO) {
+        // Car-head-unit (legacy plaintext ADB) custom build: the upstream GitHub release does
+        // not contain the pre-11 plaintext-ADB patches and would silently overwrite them, so
+        // every online update probe reports "up to date" instead of offering a download.
+        if (BuildConfig.LEGACY_ADB_CUSTOM) {
+            Timber.tag(TAG).i("LEGACY_ADB_CUSTOM build: online update disabled")
+            return@withContext CheckResult.UpToDate
+        }
         val transaction = Sentry.startTransaction("UpdateCheck", "check_for_update")
         Sentry.getSpan()?.setTag("channel", channel)
 

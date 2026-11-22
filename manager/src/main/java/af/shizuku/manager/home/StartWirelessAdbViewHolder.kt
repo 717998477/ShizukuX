@@ -103,6 +103,30 @@ class StartWirelessAdbViewHolder(
                 return@setOnClickListener
             }
 
+            // Pre-Android-11 devices with a live plaintext adbd (car head units, older phones):
+            // go straight at that port BEFORE the root probe. These ROMs often ship a
+            // /system/bin/su that the app cannot use, so isRooted() says "rooted", the card
+            // routes to the root starter and it dies with NotRootedException — while the
+            // plaintext adbd (5557 here, 5555 on stock) is perfectly usable.
+            val legacyPort = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                EnvironmentUtils.getAdbTcpPort().takeIf { it in 1..65535 }
+                    ?: ShizukuSettings.getLastPort().takeIf { it in 1..65535 }
+            } else {
+                null
+            }
+            if (legacyPort != null) {
+                val legacyIntent = Intent(context, StarterActivity::class.java).apply {
+                    putExtra(StarterActivity.EXTRA_PORT, legacyPort)
+                }
+                val legacyActivity = context.asActivity<android.app.Activity>()
+                if (legacyActivity != null) {
+                    legacyActivity.startWithSceneTransition(legacyIntent, binding.icon, "icon_wireless_adb")
+                } else {
+                    context.startActivity(legacyIntent)
+                }
+                return@setOnClickListener
+            }
+
             // 4.1 merged "start service" card: on rooted devices (or Samsung system-uid
             // escalation), the primary button routes through the root starter instead of the
             // wireless-debugging flow. This replaces the former standalone StartRoot card.
@@ -131,29 +155,10 @@ class StartWirelessAdbViewHolder(
                 return@setOnClickListener
             }
 
-            // Pre-Android-11 (car head units, older phones): wireless debugging does not exist
-            // yet, and the device already exposes a plaintext adbd port — persist.adb.tcp.port
-            // on a head unit (e.g. 5557), the AOSP 5555 on a phone. Go straight at that port;
-            // arming adb_wifi_enabled and disableAdbTcp() below only make sense from API 30.
+            // Pre-Android-11 with no plaintext adbd port: wireless debugging does not exist on
+            // these versions, so there is nothing to arm — tell the user to enable ADB instead
+            // of pretending the (nonexistent) wireless-debugging switch is the answer.
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
-                val legacyPort = EnvironmentUtils.getAdbTcpPort().takeIf { it in 1..65535 }
-                    ?: ShizukuSettings.getLastPort().takeIf { it in 1..65535 }
-                if (legacyPort != null) {
-                    val legacyIntent = Intent(context, StarterActivity::class.java).apply {
-                        putExtra(StarterActivity.EXTRA_PORT, legacyPort)
-                    }
-                    val legacyActivity = context.asActivity<android.app.Activity>()
-                    if (legacyActivity != null) {
-                        legacyActivity.startWithSceneTransition(
-                            legacyIntent, binding.icon, "icon_wireless_adb"
-                        )
-                    } else {
-                        context.startActivity(legacyIntent)
-                    }
-                    return@setOnClickListener
-                }
-                // No port at all: tell the user how to enable ADB instead of pretending the
-                // (nonexistent) wireless-debugging switch is the answer.
                 if (!EnvironmentUtils.isAdbEnabled()) {
                     WadbEnableUsbDebuggingDialogFragment().show(
                         context.asActivity<FragmentActivity>().supportFragmentManager
@@ -333,7 +338,10 @@ class StartWirelessAdbViewHolder(
         // for the already-root-running case. (v26 F1 fixed EnvironmentUtils.isRooted() so it
         // reports true in-app on rooted devices like Xiaomi 13 Pro + SukiSU, which is what the
         // old comment below this code could not rely on.)
-        val isRootPath = EnvironmentUtils.isRooted() || ShizukuSettings.isSamsungSystemUidEscalationEnabled()
+        val legacyAdbPreferred = Build.VERSION.SDK_INT < Build.VERSION_CODES.R &&
+            (EnvironmentUtils.getAdbTcpPort() in 1..65535 || ShizukuSettings.getLastPort() in 1..65535)
+        val isRootPath = !legacyAdbPreferred &&
+            (EnvironmentUtils.isRooted() || ShizukuSettings.isSamsungSystemUidEscalationEnabled())
         // Running (by any path): the card's job is restarting, not starting. Distinct from
         // isRootPath, which also covers "rooted device, service not started yet".
         val serviceRunning = rootRestart || ShizukuStateMachine.isRunning()

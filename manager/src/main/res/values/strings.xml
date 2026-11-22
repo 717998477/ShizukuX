@@ -996,6 +996,7 @@ To make sure the watchdog itself survives, allow ShizukuX to keep running in the
     <string name="starter_step_check_root">Check root permission</string>
     <string name="starter_step_check_root_running">Checking root permission…</string>
     <string name="starter_step_check_root_done">Root permission acquired</string>
+    <string name="starter_step_root_fallback">No usable root; switched to plaintext ADB on port %d</string>
     <string name="starter_step_start_root">Start service process</string>
     <string name="starter_step_start_root_running">Starting service with root…</string>
     <string name="starter_step_start_root_done">Service process started</string>

@@ -935,6 +935,7 @@
     <string name="starter_step_check_root"><![CDATA[检查 Root 权限]]></string>
     <string name="starter_step_check_root_running"><![CDATA[正在检查 Root 权限…]]></string>
     <string name="starter_step_check_root_done"><![CDATA[已获取 Root 权限]]></string>
+    <string name="starter_step_root_fallback"><![CDATA[未检测到可用的 root，已改用明文 ADB（端口 %d）]]></string>
     <string name="starter_step_start_root"><![CDATA[启动服务进程]]></string>
     <string name="starter_step_start_root_running"><![CDATA[正在通过 Root 启动服务…]]></string>
     <string name="starter_step_start_root_done"><![CDATA[服务进程已启动]]></string>

@@ -52,20 +52,26 @@ jobs:
           cargo install cargo-ndk --locked
           cargo ndk --version
 
-      - name: Generate release keystore + signing.properties
+      - name: Prepare signing keystore + signing.properties
+        env:
+          KEYSTORE_B64: ${{ secrets.SIGNING_KEYSTORE_B64 }}
         run: |
-          keytool -genkeypair -noprompt -v \
-            -keystore "$GITHUB_WORKSPACE/ci-release.keystore" \
-            -storepass shizukuxci -keypass shizukuxci \
-            -alias shizukux -keyalg RSA -keysize 2048 -validity 36500 \
-            -dname "CN=ShizukuX CI, O=Self Build, C=CN"
+          if [ -n "$KEYSTORE_B64" ]; then
+            printf '%s' "$KEYSTORE_B64" | base64 -d > "$GITHUB_WORKSPACE/ci-release.keystore"
+            echo "Signing with the repository keystore (new builds install over old ones)"
+          else
+            keytool -genkeypair -noprompt -v \
+              -keystore "$GITHUB_WORKSPACE/ci-release.keystore" \
+              -storepass shizukuxci -keypass shizukuxci \
+              -alias shizukux -keyalg RSA -keysize 2048 -validity 36500 \
+              -dname "CN=ShizukuX Car Build, O=Self Build, C=CN"
+          fi
           printf '%s\n' \
             "KEYSTORE_FILE=$GITHUB_WORKSPACE/ci-release.keystore" \
             'KEYSTORE_PASSWORD=shizukuxci' \
             'KEYSTORE_ALIAS=shizukux' \
             'KEYSTORE_ALIAS_PASSWORD=shizukuxci' > signing.properties
           cat signing.properties
-          ls -l "$GITHUB_WORKSPACE/ci-release.keystore"
 
       - name: Gradle cache
         uses: gradle/actions/setup-gradle@v4

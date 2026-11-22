@@ -953,6 +953,18 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
         fallbackToManualWireless()
     }
 
+    /**
+     * Plaintext adbd port usable by a pre-Android-11 device, or null on API 30+ / no port.
+     * Order: system property (service./persist.adb.tcp.port — 5557 on the head unit, 5555 on
+     * stock) → last successfully used port → the configured value.
+     */
+    private fun legacyAdbPort(): Int? {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) return null
+        return EnvironmentUtils.getAdbTcpPort().takeIf { it in 1..65535 }
+            ?: ShizukuSettings.getLastPort().takeIf { it in 1..65535 }
+            ?: ShizukuSettings.getTcpPort().takeIf { it in 1..65535 }
+    }
+
     private fun isWifiConnected(): Boolean {
         val cm = appContext.getSystemService(ConnectivityManager::class.java) ?: return false
         return cm.allNetworks.any { network ->
@@ -1301,6 +1313,22 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         if (!rooted) {
+            // Car head units and other pre-Android-11 devices often ship a /system/bin/su that
+            // the app cannot actually use: EnvironmentUtils.isRooted() sees the file and reports
+            // "rooted", the home card routes here, and the flow dies on NotRootedException even
+            // though a working plaintext adbd is right there. Degrade to the plaintext ADB flow
+            // instead of showing "device is not rooted".
+            val fallbackPort = legacyAdbPort()
+            if (fallbackPort != null) {
+                updateStep(
+                    "check_root",
+                    StepStatus.WARNING,
+                    appContext.getString(R.string.starter_step_root_fallback, fallbackPort)
+                )
+                log("Root is not usable; falling back to plaintext ADB on port $fallbackPort\n")
+                runAdbFlow(fallbackPort)
+                return
+            }
             updateStep("check_root", StepStatus.ERROR, "")
             setError(NotRootedException())
             return
@@ -1312,6 +1340,19 @@ class ViewModel(application: Application) : AndroidViewModel(application) {
             startRoot()
         } catch (e: Exception) {
             if (e is CancellationException) throw e
+            // Same degrade rule as the check above: a su that exists but cannot grant root on a
+            // pre-11 device with a plaintext adbd must not stop the whole start.
+            val fallbackPort = legacyAdbPort()
+            if (fallbackPort != null) {
+                updateStep(
+                    "start_root",
+                    StepStatus.WARNING,
+                    appContext.getString(R.string.starter_step_root_fallback, fallbackPort)
+                )
+                log("Root start failed (${e.javaClass.simpleName}: ${e.message}); falling back to plaintext ADB on port $fallbackPort\n")
+                runAdbFlow(fallbackPort)
+                return
+            }
             updateStep("start_root", StepStatus.ERROR, e.message ?: "")
             setError(e)
             return

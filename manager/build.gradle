@@ -19,9 +19,13 @@ android {
     defaultConfig {
         applicationId = "xyz.shizuku.extra.api"
         versionCode rootProject.ext.versionCode
-        versionName rootProject.ext.versionName
+        versionName rootProject.ext.versionName + "-car"
         def sentryDsn = project.findProperty('SENTRY_DSN') ?: ''
         buildConfigField "String", "SENTRY_DSN", "\"${sentryDsn}\""
+        // Marks the car-head-unit build (pre-Android-11 plaintext ADB support + boot autostart).
+        // Consumed by UpdateChecker to disable the online updater: the upstream GitHub release
+        // lacks these patches and would overwrite them on install.
+        buildConfigField "boolean", "LEGACY_ADB_CUSTOM", "true"
         manifestPlaceholders = [
             sentryDsn: sentryDsn,
             // Dhizuku content-provider authority is defined directly in AndroidManifest.xml
