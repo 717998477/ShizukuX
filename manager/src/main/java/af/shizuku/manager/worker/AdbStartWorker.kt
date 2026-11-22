@@ -149,7 +149,12 @@ class AdbStartWorker(context: Context, params: WorkerParameters) : CoroutineWork
             // 走到 mDNS 发现 TLS 配对端口。
             val usableLivePort = if (livePort > 0 && !isAuthUsable(livePort)) {
                 Timber.tag("AdbStartWorker").w("loopback port $livePort open but AUTH failed (on_device_adb_tcp residue?); clearing and rediscovering")
-                if (EnvironmentUtils.getAdbTcpPort() in 1..65535) {
+                // Never tear down the plaintext port on pre-Android-11: there is no TLS
+                // wireless-debugging port waiting behind it, and that socket is the only wire
+                // the device (car head unit / phone) exposes for an on-device start.
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R &&
+                    EnvironmentUtils.getAdbTcpPort() in 1..65535
+                ) {
                     withContext(Dispatchers.IO) {
                         runCatching { af.shizuku.manager.service.AdbProxyService.disableAdbTcp() }
                     }
@@ -157,8 +162,16 @@ class AdbStartWorker(context: Context, params: WorkerParameters) : CoroutineWork
                 }
                 -1
             } else livePort
+            // Pre-Android-11 has no TLS wireless debugging: the plaintext adbd port is the only
+            // wire, and it must win over the mDNS branch below (which would otherwise wait out
+            // its 15s timeout and report "no port" on every boot).
+            val legacyPort = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                EnvironmentUtils.getAdbTcpPort().takeIf { it in 1..65535 }
+                    ?: ShizukuSettings.getTcpPort().takeIf { it in 1..65535 }
+            } else null
             val port = when {
                 usableLivePort > 0 -> usableLivePort
+                legacyPort != null -> legacyPort
                 EnvironmentUtils.getAdbTcpPort() > 0 && isWifiOk -> EnvironmentUtils.getAdbTcpPort()
                 savedPort > 0 && isWifiOk && runAttemptCount == 0 -> savedPort
                 else -> callbackFlow {

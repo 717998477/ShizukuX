@@ -2,6 +2,7 @@ package af.shizuku.manager.adb
 import af.shizuku.manager.R
 
 import android.content.Context
+import android.os.Build
 import timber.log.Timber
 import android.widget.Toast
 import java.io.EOFException
@@ -90,7 +91,12 @@ object AdbStarter {
                 var activePort = port
                 val tcpMode = ShizukuSettings.getTcpMode()
                 val tcpPort = ShizukuSettings.getTcpPort()
-                if (tcpMode && activePort != tcpPort) {
+                // `tcpip:<port>` restarts adbd into another listening port. On pre-Android-11 the
+                // device is ALREADY listening on its plaintext port (the car head unit's 5557 /
+                // the phone's 5555), so sending it would needlessly bounce the very socket we
+                // are connected through — and adbd comes back on the requested port with a
+                // different TLS story we do not need here.
+                if (tcpMode && activePort != tcpPort && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                     if (tcpPort !in 1..65535) {
                         Timber.tag(TAG).w("TCP mode enabled but stored TCP port is invalid ($tcpPort) — skipping TCP redirect")
                     } else {

@@ -131,6 +131,41 @@ class StartWirelessAdbViewHolder(
                 return@setOnClickListener
             }
 
+            // Pre-Android-11 (car head units, older phones): wireless debugging does not exist
+            // yet, and the device already exposes a plaintext adbd port — persist.adb.tcp.port
+            // on a head unit (e.g. 5557), the AOSP 5555 on a phone. Go straight at that port;
+            // arming adb_wifi_enabled and disableAdbTcp() below only make sense from API 30.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+                val legacyPort = EnvironmentUtils.getAdbTcpPort().takeIf { it in 1..65535 }
+                    ?: ShizukuSettings.getLastPort().takeIf { it in 1..65535 }
+                if (legacyPort != null) {
+                    val legacyIntent = Intent(context, StarterActivity::class.java).apply {
+                        putExtra(StarterActivity.EXTRA_PORT, legacyPort)
+                    }
+                    val legacyActivity = context.asActivity<android.app.Activity>()
+                    if (legacyActivity != null) {
+                        legacyActivity.startWithSceneTransition(
+                            legacyIntent, binding.icon, "icon_wireless_adb"
+                        )
+                    } else {
+                        context.startActivity(legacyIntent)
+                    }
+                    return@setOnClickListener
+                }
+                // No port at all: tell the user how to enable ADB instead of pretending the
+                // (nonexistent) wireless-debugging switch is the answer.
+                if (!EnvironmentUtils.isAdbEnabled()) {
+                    WadbEnableUsbDebuggingDialogFragment().show(
+                        context.asActivity<FragmentActivity>().supportFragmentManager
+                    )
+                } else {
+                    WadbNotEnabledDialogFragment().show(
+                        context.asActivity<FragmentActivity>().supportFragmentManager
+                    )
+                }
+                return@setOnClickListener
+            }
+
             context.sendBroadcast(Intent(context, NotifCancelReceiver::class.java))
 
             // 「设备内 ADB over TCP」（on_device_adb_tcp，传统明文 TCP 模式）与无线调试

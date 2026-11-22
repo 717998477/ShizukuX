@@ -62,6 +62,17 @@ object ShizukuReceiverStarter {
         STOPPED
     }
 
+    /**
+     * Pre-Android-11 devices have no wireless-debugging pairing (it starts at API 30) and no
+     * permission grant to arm it, yet they usually expose a plaintext adbd port already —
+     * car head units via persist.adb.tcp.port (e.g. 5557), phones via the default 5555.
+     * That port alone is enough to bring the server up, so the WRITE_SECURE_SETTINGS /
+     * running-binder gate must not be the only way in on those devices.
+     */
+    private fun isLegacyAdbStartPossible(): Boolean =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.R &&
+            (EnvironmentUtils.getAdbTcpPort() > 0 || ShizukuSettings.getLastPort() > 0)
+
     fun start(context: Context, forceStart: Boolean = false) {
         // The user's last deliberate action was "stop the server". Boot sync, the watchdog, alarm
         // re-arm and the ADB worker all funnel here; letting any of them through would restart a
@@ -108,14 +119,17 @@ object ShizukuReceiverStarter {
 
         if (ShizukuSettings.getLastLaunchMode() == LaunchMethod.ROOT) {
             rootStart(context)
-        } else if (ShizukuSettings.getLastLaunchMode() == LaunchMethod.ADB) {
+        } else if (ShizukuSettings.getLastLaunchMode() == LaunchMethod.ADB ||
+            isLegacyAdbStartPossible()
+        ) {
             // A running server is shell and holds WRITE_SECURE_SETTINGS itself, so an ADB
             // start no longer needs the app to hold the permission: AdbStartWorker arms
             // through it (AdbArm.Method.SHIZUKU_SERVER). Without this second half the entire
             // background start was refused before the worker even ran on ROMs whose permission
             // monitor blocks the grant (ColorOS/OxygenOS), leaving only the UI pairing assistant.
             if (context.checkSelfPermission(WRITE_SECURE_SETTINGS) == PackageManager.PERMISSION_GRANTED ||
-                runCatching { Shizuku.pingBinder() }.getOrDefault(false)) {
+                runCatching { Shizuku.pingBinder() }.getOrDefault(false) ||
+                isLegacyAdbStartPossible()) {
                 // v25: probe the wireless-debugging preconditions before committing to
                 // AdbStartWorker. v24 on-device testing showed the watchdog recovering into a
                 // dead end when SP mode=ADB but wireless debugging was never armed (no TCP port /

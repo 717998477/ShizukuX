@@ -646,11 +646,32 @@ public class ShizukuSettings {
         getPreferences().edit().putBoolean(Keys.KEY_TCP_MODE, enable).apply();
     }
 
+    /**
+     * On-device ADB TCP port used by the plaintext (pre-Android-11) startup path.
+     *
+     * <p>Detected at runtime instead of hardcoded, so one build serves every device: car head
+     * units commonly ship a vendor port (e.g. {@code persist.adb.tcp.port=5557}) while phones
+     * keep the AOSP default 5555. {@code service.adb.tcp.port} wins because it reflects the
+     * port adbd is bound to right now, {@code persist.adb.tcp.port} survives reboots, and only
+     * when neither property exists do we fall back to 5555.
+     */
+    public static int getLegacyAdbPort() {
+        try {
+            // Raw property reader (no TV / TLS fallback) so this can never recurse into getTcpPort().
+            int prop = af.shizuku.common.util.EnvironmentUtils.getAdbTcpPort();
+            if (prop >= 1 && prop <= 65535) return prop;
+        } catch (Throwable ignored) {
+            // Property unreadable -> fall through to the default.
+        }
+        return 5555;
+    }
+
     public static int getTcpPort() {
         try {
-            return Integer.parseInt(getPreferences().getString(Keys.KEY_TCP_PORT, "5555"));
+            return Integer.parseInt(getPreferences().getString(
+                    Keys.KEY_TCP_PORT, Integer.toString(getLegacyAdbPort())));
         } catch (NumberFormatException e) {
-            return 5555;
+            return getLegacyAdbPort();
         }
     }
 
